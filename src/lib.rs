@@ -1,31 +1,34 @@
-use std::{env, error::Error, fs};
+use std::{error::Error, fs};
+use clap::Parser;
 
+#[derive(Parser, Debug)]
+#[clap(
+    author = "Loukis <github.com/Loukis-13>", 
+    version, 
+    about = "Simple Rust implementation of the Unix tool `grep`", 
+    long_about = None
+)]
 pub struct Config {
+    #[clap(forbid_empty_values = true, help = "Text to search")]
     pub query: String,
-    pub file_path: String,
-    pub case_sensitive: bool,
+
+    #[clap(parse(from_os_str), help = "File to search in")]
+    pub file_path: std::path::PathBuf,
+
+    #[clap(short = 'i', long, value_parser, default_value_t = false, help = "")]
+    pub case_insensitive: bool,
 }
 
 impl Config {
-    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
-        Ok(Config {
-            query: match args.nth(1) {
-                Some(arg) => arg,
-                None => return Err("Didn't get a query string"),
-            },
-            file_path: match args.nth(2) {
-                Some(arg) => arg,
-                None => return Err("Didn't get a file path"),
-            },
-            case_sensitive: env::var("CASE_SENSITIVE").is_ok(),
-        })
+    pub fn build() -> Result<Config, &'static str> {
+        return Ok(Config::parse());
     }
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.file_path)?;
 
-    let results = if config.case_sensitive {
+    let results = if config.case_insensitive {
         search_case_insensitive(&config.query, &contents)
     } else {
         search(&config.query, &contents)
